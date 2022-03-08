@@ -4,6 +4,14 @@ import yaml
 import threading
 import pandas as pd
 
+
+lock=threading.Lock()
+defecttrack={}
+def writetask(name,description):
+    lock.acquire()
+    defecttrack[f"$({name+'.NoOfDefects'})"]=description
+    lock.release()
+
 class ParseYaml:
     def __init__(self,filename) -> None:
         self.filename=filename
@@ -21,7 +29,6 @@ class Workflow:
         self.dictionary=dictionary
         self.flow=[]
         self.txt=text
-        self.lock=threading.Lock()
 
     def iterate(self,name,description) -> None:
         self.flow.append({"name":name,"action":description})
@@ -51,8 +58,7 @@ class Workflow:
 
 
         elif description.get('Type') == "Task":
-             Task =TaskManager()
-             Task.ManageTask(name,description,self.txt,self.lock)
+             TaskManager.ManageTask(name,description,self.txt)
 
     def calliterate(self) -> None:
         for key,value in self.dictionary.items():
@@ -63,13 +69,10 @@ class Workflow:
     def checkflow(self) -> list:
         print(self.flow)
 
-defecttrack={}
 class TaskManager:
 
-    def __init__(self) -> None:
-        self.lock=threading.Lock()
-
-    def Timefunction(self,name,description,txt,lock) -> None:
+    @staticmethod
+    def Timefunction(name,description,txt) -> None:
         print((description.get('Inputs')).get('FunctionInput'))
         with open(txt,"a") as log:
             log.write(str(datetime.now())+";"+name+" Entry\n")
@@ -80,7 +83,7 @@ class TaskManager:
             if oper == ">":
                 if not defecttrack[task] > int(value):
                     with open(txt,"a") as log:
-                        log.write(str(datetime.datetime.now())+";"+name+" Entry\n"+str(datetime.datetime.now())+";"+name+" skipped\n"+str(datetime.datetime.now())+";"+name+" Exit\n")
+                        log.write(str(datetime.datetime.now())+";"+name+" Entry\n"+str(datetime.datetime.now())+";"+name+" Skipped\n"+str(datetime.datetime.now())+";"+name+" Exit\n")
                 else:
                     with open(txt,"a") as log:
                         log.write(str(datetime.now())+";"+name+" Executing TimeFunction({},{})\n".format(((description.get('Inputs')).get('FunctionInput')),((description.get('Inputs')).get('FunctionInput'))))
@@ -88,13 +91,13 @@ class TaskManager:
             elif oper == "<":
                 if not defecttrack[task] < int(value):
                     with open(txt,"a") as log:
-                        log.write(str(datetime.datetime.now())+";"+name+" Entry\n"+str(datetime.datetime.now())+";"+name+" skipped\n"+str(datetime.datetime.now())+";"+name+" Exit\n")
+                        log.write(str(datetime.datetime.now())+";"+name+" Entry\n"+str(datetime.datetime.now())+";"+name+" Skipped\n"+str(datetime.datetime.now())+";"+name+" Exit\n")
                 else:
                     with open(txt,"a") as log:
                         log.write(str(datetime.now())+";"+name+" Executing TimeFunction({},{})\n".format(((description.get('Inputs')).get('FunctionInput')),((description.get('Inputs')).get('FunctionInput'))))
-            self.lock.acquire()
-            defecttrack[f"$({name+'.NoOfDefects'})"]=(description.get("Outputs"))[1]
-            self.lock.release()
+            writetask(name,(description.get("Outputs"))[1])
+            print(defecttrack)
+
         else:
              with open(txt,"a") as log:
                 log.write(str(datetime.now())+";"+name+" Executing TimeFunction({},{})\n".format(((description.get('Inputs')).get('FunctionInput')),((description.get('Inputs')).get('FunctionInput'))))
@@ -103,7 +106,8 @@ class TaskManager:
         with open(txt,"a") as log:
             log.write(str(datetime.now())+";"+name+" Exit\n")
 
-    def Dataload(self,name,description,txt,lock) -> None:
+    @staticmethod
+    def Dataload(name,description,txt) -> None:
 
         with open(txt,"a") as log:
             log.write(str(datetime.now())+";"+name+" Entry\n")
@@ -116,20 +120,20 @@ class TaskManager:
             if oper == ">":
                 if not defecttrack[task] > int(value):
                     with open(txt,"a") as log:
-                        log.write(str(datetime.now())+";"+name+" Entry\n"+str(datetime.datetime.now())+";"+name+" skipped\n"+str(datetime.datetime.now())+";"+name+" Exit\n")
+                        log.write(str(datetime.now())+";"+name+" Entry\n"+str(datetime.datetime.now())+";"+name+" Skipped\n"+str(datetime.datetime.now())+";"+name+" Exit\n")
                 else:
                     with open(txt,"a") as log:
                         log.write(str(datetime.now())+";"+name+" Executing DataLoad ({})\n".format((description.get('Inputs')).get('Filename')))
             elif oper == "<":
                 if not defecttrack[task] < int(value):
                     with open(txt,"a") as log:
-                        log.write(str(datetime.now())+";"+name+" Entry\n"+str(datetime.datetime.now())+";"+name+" skipped\n"+str(datetime.datetime.now())+";"+name+" Exit\n")
+                        log.write(str(datetime.now())+";"+name+" Entry\n"+str(datetime.datetime.now())+";"+name+" Skipped\n"+str(datetime.datetime.now())+";"+name+" Exit\n")
                 else:
                     with open(txt,"a") as log:
                         log.write(str(datetime.now())+";"+name+" Executing DataLoad ({})\n".format((description.get('Inputs')).get('Filename')))
-            self.lock.acquire()
-            defecttrack[f"$({name+'.NoOfDefects'})"]=(description.get("Outputs"))[1]
-            self.lock.release()
+
+            writetask(name,(description.get("Outputs"))[1])
+            print(defecttrack)
         else:
              with open(txt,"a") as log:
                  log.write(str(datetime.now())+";"+name+" Executing DataLoad ({})\n".format((description.get('Inputs')).get('Filename')))
@@ -138,13 +142,14 @@ class TaskManager:
         with open(txt,"a") as log:
             log.write(str(datetime.now())+";"+name+" Exit\n")
 
-    def ManageTask(self,name,description,txt,lock) -> None:
+    @staticmethod
+    def ManageTask(name,description,txt) -> None:
 
          print(name,description,txt)
          if description.get('Function') == "TimeFunction":
-             self.Timefunction(name,description,txt,lock)
+             TaskManager.Timefunction(name,description,txt)
          if description.get('Function') == "DataLoad":
-             self.Dataload(name,description,txt,lock)
+             TaskManager.Dataload(name,description,txt)
 
 if __name__ == "__main__":
     milestone1A = ParseYaml('./Milestone2/Milestone2A.yaml')
@@ -156,7 +161,9 @@ if __name__ == "__main__":
     print(defecttrack)
     # yaml1.checkflow()
 
+    lock.acquire()
     defecttrack={}
+    lock.release()
 
     milestone1B = ParseYaml('./Milestone2/Milestone2B.yaml')
     parsed_yaml_fileB = milestone1B.load()
