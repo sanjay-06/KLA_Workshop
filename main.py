@@ -1,18 +1,16 @@
 from datetime import datetime
-from multiprocessing import Condition
-from multiprocessing.connection import wait
 import time
 import yaml
 import threading
 import pandas as pd
 
 
-lock=threading.Condition()
+# lock=threading.Lock()
 defecttrack={}
 def writetask(name,description):
-    lock.acquire()
+    # lock.acquire()
     defecttrack[f"$({name+'.NoOfDefects'})"]=description
-    lock.release()
+    # lock.release()
 
 class ParseYaml:
     def __init__(self,filename) -> None:
@@ -82,8 +80,8 @@ class TaskManager:
         print(description.get("Condition"))
         if(description.get("Condition")):
             task,oper,value=description.get("Condition").split(" ")
-            writetask(name,(description.get("Outputs"))[1])
-
+            while task not in defecttrack:
+                time.sleep(1)
             if oper == ">":
                 if not defecttrack[task] > int(value):
                     with open(txt,"a") as log:
@@ -99,7 +97,7 @@ class TaskManager:
                 else:
                     with open(txt,"a") as log:
                         log.write(str(datetime.now())+";"+name+" Executing TimeFunction({},{})\n".format(((description.get('Inputs')).get('FunctionInput')),((description.get('Inputs')).get('FunctionInput'))))
-
+            writetask(name,(description.get("Outputs"))[1])
             print(defecttrack)
 
         else:
@@ -121,7 +119,8 @@ class TaskManager:
         print(description.get("Condition"))
         if(description.get("Condition")):
             task,oper,value=description.get("Condition").split(" ")
-            writetask(name,(description.get("Outputs"))[1])
+            while task not in defecttrack:
+                time.sleep(1)
             if oper == ">":
                 if not defecttrack[task] > int(value):
                     with open(txt,"a") as log:
@@ -137,7 +136,7 @@ class TaskManager:
                     with open(txt,"a") as log:
                         log.write(str(datetime.now())+";"+name+" Executing DataLoad ({})\n".format((description.get('Inputs')).get('Filename')))
 
-
+            writetask(name,(description.get("Outputs"))[1])
             print(defecttrack)
         else:
              with open(txt,"a") as log:
@@ -166,9 +165,9 @@ if __name__ == "__main__":
     print(defecttrack)
     # yaml1.checkflow()
 
-    lock.acquire()
+    # lock.acquire()
     defecttrack={}
-    lock.release()
+    # lock.release()
 
     milestone1B = ParseYaml('./Milestone2/Milestone2B.yaml')
     parsed_yaml_fileB = milestone1B.load()
