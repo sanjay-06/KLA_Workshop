@@ -1,0 +1,8 @@
+2022-03-08 11:39:54.265747;M1B_Workflow Entry
+2022-03-08 11:39:54.268789;M1B_Workflow.TaskA Entry
+2022-03-08 11:39:54.268789;M1B_Workflow.TaskA Executing TimeFunction(TaskA_Input,1)
+2022-03-08 11:39:55.279001;M1B_Workflow.TaskA Exit
+2022-03-08 11:39:55.283986;M1B_Workflow.TaskZ Entry
+2022-03-08 11:39:55.283986;M1B_Workflow.TaskZ Executing TimeFunction(TaskZ_Input,5)
+2022-03-08 11:40:00.293409;M1B_Workflow.TaskZ Exit
+2022-03-08 11:40:00.296401;M1B_Workflow Exit
