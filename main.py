@@ -1,6 +1,7 @@
 from datetime import datetime
 import time
 import yaml
+import threading
 
 class ParseYaml:
     def __init__(self,filename) -> None:
@@ -27,6 +28,22 @@ class Workflow:
                 log.write(str(datetime.now())+";"+name+" Entry\n")
             for key,value in description['Activities'].items():
                 self.iterate(name+"."+key,value)
+            with open(self.txt,"a") as log:
+                log.write(str(datetime.now())+";"+name+" Exit\n")
+
+        elif description.get('Type') == "Flow" and description.get('Execution') == "Concurrent":
+            threadlist=[]
+            with open(self.txt,"a") as log:
+                log.write(str(datetime.now())+";"+name+" Entry\n")
+            for key,value in description['Activities'].items():
+                threadlist.append(threading.Thread(target=self.iterate,args=(name+"."+key,value,)))
+
+            for thread in threadlist:
+                thread.start()
+
+            for thread in threadlist:
+                thread.join()
+
             with open(self.txt,"a") as log:
                 log.write(str(datetime.now())+";"+name+" Exit\n")
 
